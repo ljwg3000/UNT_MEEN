@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Systems GUI — MEEN 4180/5600 | UNT</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg:        #0a0e14;
+    --surface:   #111620;
+    --card:      #161c28;
+    --border:    #1f2a3a;
+    --border2:   #2a3a50;
+    --text:      #d8e4f0;
+    --muted:     #5a7490;
+    --green:     #00853E;
+    --green2:    #00c060;
+    --blue:      #4d9fff;
+    --orange:    #f5a623;
+    --red:       #ff4d6d;
+    --purple:    #a78bfa;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #002a14 0%, #005228 50%, #003d1e 100%);
+    border-bottom: 1px solid #004020;
+    padding: 0 20px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,133,62,0.03) 40px, rgba(0,133,62,0.03) 41px);
+    pointer-events: none;
+  }
+  .header-brand { display: flex; align-items: center; gap: 12px; z-index: 1; }
+  .header-icon {
+    width: 32px; height: 32px;
+    background: var(--green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 0 12px rgba(0,133,62,0.5);
+  }
+  .header-title { font-size: 14px; font-weight: 700; letter-spacing: 0.3px; }
+  .header-sub { font-size: 11px; color: rgba(200,230,215,0.6); margin-top: 1px; }
+  .header-tags { display: flex; gap: 6px; z-index: 1; }
+  
+
+  .tag {
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.5px;
+    border: 1px solid rgba(0,133,62,0.3);
+    color: rgba(200,230,215,0.5);
+    background: rgba(0,133,62,0.08);
+  }
+
+  /* ── LAYOUT ── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 268px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .panel {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-title {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .panel-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 10px;
+    background: var(--green);
+    border-radius: 2px;
+  }
+
+  label {
+    font-size: 10.5px; color: var(--muted);
+    display: block; margin-bottom: 4px; margin-top: 8px;
+  }
+  label:first-of-type { margin-top: 0; }
+
+  input[type="text"], input[type="number"], select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 7px 10px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px rgba(0,133,62,0.15);
+  }
+  select { cursor: pointer; }
+  select option { background: #1a2030; }
+
+  .tf-card {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    line-height: 2;
+  }
+  .tf-divider { border-top: 1px solid rgba(77,159,255,0.3); margin: 2px 20px; }
+
+  /* K controls */
+  .k-wrap {
+    display: grid; grid-template-columns: auto 1fr;
+    align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .k-label {
+    font-size: 11px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  input[type="number"] {
+    color: var(--green2) !important;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    width: 100%; height: 4px; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+    background: var(--border2); border-radius: 2px; outline: none;
+    margin: 6px 0 3px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(0,133,62,0.5);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+  }
+  input[type="range"]:hover::-webkit-slider-thumb {
+    box-shadow: 0 0 10px rgba(0,133,62,0.7);
+  }
+  .range-labels {
+    display: flex; justify-content: space-between;
+    font-size: 9px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Button */
+  .btn-update {
+    width: 100%; padding: 9px;
+    background: linear-gradient(135deg, var(--green), #006830);
+    color: white; border: none; border-radius: 8px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,133,62,0.3);
+    transition: all 0.2s;
+    margin-top: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-update:hover {
+    background: linear-gradient(135deg, var(--green2), var(--green));
+    box-shadow: 0 4px 14px rgba(0,133,62,0.5);
+    transform: translateY(-1px);
+  }
+  .btn-update:active { transform: translateY(0); }
+
+  /* Stability badge */
+  .stab-badge {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 6px 10px; border-radius: 6px;
+    font-size: 13px; font-weight: 600; margin-top: 8px;
+    transition: all 0.3s;
+  }
+  .stab-stable   { background: rgba(0,192,96,0.1); color: var(--green2); border: 1px solid rgba(0,192,96,0.2); }
+  .stab-unstable { background: rgba(255,77,109,0.1); color: var(--red);   border: 1px solid rgba(255,77,109,0.2); }
+  .stab-marginal { background: rgba(245,166,35,0.1); color: var(--orange); border: 1px solid rgba(245,166,35,0.2); }
+
+  /* Poles list */
+  .poles-wrap {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; line-height: 1.9;
+  }
+  .pole-stable   { color: var(--green2); }
+  .pole-unstable { color: var(--red); }
+
+  /* Help text */
+  .help-text {
+    font-size: 13px; color: var(--muted); line-height: 1.8;
+  }
+  .help-text code {
+    background: var(--border); padding: 1px 5px;
+    border-radius: 3px; font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--blue);
+  }
+  .help-text strong { color: var(--text); }
+
+  /* ── MAIN ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+  .plots-grid {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 2px; padding: 2px;
+    background: var(--border);
+  }
+  .plot-cell { background: var(--card); min-height: 0; min-width: 0; overflow: hidden; }
+
+  /* ── METRICS BAR ── */
+  .metrics-bar {
+    height: 56px; flex-shrink: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center;
+    overflow-x: auto; overflow-y: hidden;
+  }
+  .metrics-bar::-webkit-scrollbar { height: 0; }
+
+  .metric {
+    min-width: 95px; padding: 0 14px;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .metric:last-child { border-right: none; }
+  .metric-lbl {
+    font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted);
+    white-space: nowrap;
+  }
+  .metric-val {
+    font-size: 15px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ HEADER ════════════════ -->
+<header>
+  <div class="header-brand">
+    <div class="header-icon">🎛</div>
+    <div>
+      <div class="header-title">Control Systems Interactive GUI</div>
+      <div class="header-sub">MEEN 4180 / 5600 — University of North Texas</div>
+    </div>
+  </div>
+  <div class="header-tags">
+    <span class="tag">ROOT LOCUS</span>
+    <span class="tag">BODE PLOT</span>
+    <span class="tag">STEP RESPONSE</span>
+    <span class="tag">GM · PM · OS · Ts</span>
+  </div>
+</header>
+
+<div class="layout">
+
+<!-- ════════════════ SIDEBAR ════════════════ -->
+<aside class="sidebar">
+
+  <!-- Presets -->
+  <div class="panel">
+    <div class="panel-title">Preset Examples</div>
+    <select id="preset" onchange="loadPreset(this.value)">
+      <option value="">— Select a system —</option>
+      <option value="first">① 1st Order:  P = 1/(s+1)</option>
+      <option value="second_u">② 2nd Order (underdamped):  1/(s²+s+1)</option>
+      <option value="second_o">③ 2nd Order (overdamped):  1/(s²+3s+2)</option>
+      <option value="type1">④ Type 1:  1/[s(s+2)]</option>
+      <option value="third">⑤ 3rd Order:  1/(s³+6s²+11s+6)</option>
+      <option value="unstable">⑥ Unstable Plant:  1/(s²−s+1)</option>
+    </select>
+  </div>
+
+  <!-- Plant TF -->
+  <div class="panel">
+    <div class="panel-title">Plant  P(s) = N(s) / D(s)</div>
+    <label>Numerator N(s)  — coefficients  high → low</label>
+    <input type="text" id="num" value="1" placeholder="e.g.  1   or   2, 1">
+    <label>Denominator D(s)  — coefficients  high → low</label>
+    <input type="text" id="den" value="1, 2, 0" placeholder="e.g.  1, 3, 2   or   1, 0, 4">
+    <div class="tf-card">
+      <div id="tf-num-disp" style="min-height:1.4em">N(s)</div>
+      <div class="tf-divider"></div>
+      <div id="tf-den-disp" style="min-height:1.4em">D(s)</div>
+    </div>
+  </div>
+
+  <!-- Gain K -->
+  <div class="panel">
+    <div class="panel-title">Controller  C(s) = K</div>
+    <div class="k-wrap">
+      <span class="k-label">K =</span>
+      <input type="number" id="knum" value="2" min="0.001" max="99999" step="any">
+    </div>
+    <input type="range" id="kslider" min="-2" max="4" step="0.01" value="0.301">
+    <div class="range-labels">
+      <span>0.01</span><span>0.1</span><span>1</span><span>10</span><span>100</span><span>10k</span>
+    </div>
+    <button class="btn-update" onclick="updateAll()">▶ &nbsp;Update All Plots</button>
+    <div class="stab-badge stab-stable" id="stab">✓ Closed-Loop Stable</div>
+  </div>
+
+  <!-- CL Poles -->
+  <div class="panel">
+    <div class="panel-title">Closed-Loop Poles</div>
+    <div class="poles-wrap" id="cl-poles">—</div>
+  </div>
+
+  <!-- Instructions -->
+  <div class="panel" style="flex:1">
+    <div class="panel-title">How To Use</div>
+    <div class="help-text">
+      <strong>1.</strong> Pick a preset, or type your own<br>
+      &nbsp;&nbsp;&nbsp;P(s) coefficients above.<br><br>
+      <strong>2.</strong> Drag the K slider — all 4 plots update simultaneously.<br><br>
+      <strong>3.</strong> Read the metrics bar at the bottom for PM, GM, %OS, and Ts.<br><br>
+      <strong>Input format:</strong><br>
+      &nbsp;&nbsp;s² + 2s + 3 → <code>1, 2, 3</code><br>
+      &nbsp;&nbsp;s(s+4) → <code>1, 4, 0</code><br><br>
+      <strong>Plot symbols:</strong><br>
+      &nbsp;&nbsp;× &nbsp;Open-loop poles<br>
+      &nbsp;&nbsp;○ &nbsp;Open-loop zeros<br>
+      &nbsp;&nbsp;★ &nbsp;CL poles at current K
+    </div>
+  </div>
+
+</aside>
+
+<!-- ════════════════ MAIN ════════════════ -->
+<main class="main">
+  <div class="plots-grid">
+    <div class="plot-cell" id="plot-rl"></div>
+    <div class="plot-cell" id="plot-step"></div>
+    <div class="plot-cell" id="plot-bm"></div>
+    <div class="plot-cell" id="plot-bp"></div>
+  </div>
+
+  <!-- Metrics bar -->
+  <div class="metrics-bar">
+    <div class="metric">
+      <span class="metric-lbl">Phase Margin</span>
+      <span class="metric-val" id="m-pm" style="color:var(--blue)">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">Gain Margin</span>
+      <span class="metric-val" id="m-gm" style="color:var(--blue)">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">ω gain-cross</span>
+      <span class="metric-val" id="m-wgc" style="color:var(--muted)">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">ω phase-cross</span>
+      <span class="metric-val" id="m-wpc" style="color:var(--muted)">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">% Overshoot</span>
+      <span class="metric-val" id="m-os" style="color:var(--orange)">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">Settling (2%)</span>
+      <span class="metric-val" id="m-ts" style="color:var(--orange)">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">Rise Time</span>
+      <span class="metric-val" id="m-tr" style="color:var(--orange)">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">Steady-State</span>
+      <span class="metric-val" id="m-ss" style="color:var(--green2)">—</span>
+    </div>
+  </div>
+</main>
+
+</div><!-- .layout -->
+
+<script>
+'use strict';
+/* ================================================================
+   UTILITY
+   ================================================================ */
+const logspace = (a,b,n) => Array.from({length:n},(_,i)=>10**(a+(b-a)*i/(n-1)));
+
+function parseCoeffs(s){
+  const v = s.trim().split(/[\s,]+/).map(Number).filter(isFinite);
+  return v.length ? v : null;
+}
+
+/* ================================================================
+   POLYNOMIAL ARITHMETIC
+   Representation: [a_n, a_{n-1}, ..., a_1, a_0]  (high-degree first)
+   ================================================================ */
+
+/** Evaluate polynomial at s = re + j·im (Horner's method) */
+function polyEval(c, re, im){
+  let r=0, i=0;
+  for(const a of c){
+    const nr = r*re - i*im + a;
+    const ni = r*im + i*re;
+    r=nr; i=ni;
+  }
+  return {re:r, im:i};
+}
+
+/** Add two polynomials, padding shorter one with leading zeros */
+function polyAdd(p,q){
+  const n = Math.max(p.length,q.length);
+  const a = [...Array(n-p.length).fill(0),...p];
+  const b = [...Array(n-q.length).fill(0),...q];
+  return a.map((v,i)=>v+b[i]);
+}
+
+const polyScale = (p,k) => p.map(c=>c*k);
+
+/** Format polynomial for display  [1,2,3] → "s² + 2s + 3" */
+function formatPoly(c){
+  const n = c.length-1;
+  let terms=[];
+  for(let i=0;i<c.length;i++){
+    const coeff=c[i], exp=n-i;
+    if(coeff===0) continue;
+    const absC = Math.abs(coeff);
+    const sign = terms.length===0 ? (coeff<0?'−':'') : (coeff<0?' − ':' + ');
+    const cf   = (absC===1 && exp>0) ? '' : parseFloat(absC.toPrecision(4)).toString();
+    const sv   = exp===0 ? '' : exp===1 ? 's' : `s^${exp}`;
+    terms.push(sign + cf + sv);
+  }
+  return terms.join('') || '0';
+}
+
+/* ================================================================
+   ROOT FINDING — Durand-Kerner iteration
+   ================================================================ */
+function polyRoots(coeffs){
+  const n = coeffs.length-1;
+  if(n<=0) return [];
+  if(n===1) return [{re:-coeffs[1]/coeffs[0], im:0}];
+
+  // Normalize to monic
+  const lead = coeffs[0];
+  const p = coeffs.map(c=>c/lead);
+
+  // Cauchy bound for initial circle radius
+  const cauchyR = 1 + p.slice(1).reduce((s,c)=>s+Math.abs(c),0);
+  const r0 = Math.min(Math.max(cauchyR*0.4, 0.5), 15);
+
+  // Initialize roots on a circle (offset angle to avoid symmetry trap)
+  let roots = Array.from({length:n},(_,k)=>({
+    re: r0*Math.cos(2*Math.PI*k/n+0.3),
+    im: r0*Math.sin(2*Math.PI*k/n+0.3)
+  }));
+
+  // Durand-Kerner iterations
+  for(let iter=0; iter<200; iter++){
+    roots = roots.map((ri,i)=>{
+      const pv = polyEval(p, ri.re, ri.im);
+      let dr=1, di=0;
+      for(let j=0;j<n;j++){
+        if(j===i) continue;
+        const dx=ri.re-roots[j].re, dy=ri.im-roots[j].im;
+        const nr=dr*dx-di*dy, ni=dr*dy+di*dx;
+        dr=nr; di=ni;
+      }
+      const m2=dr*dr+di*di;
+      if(m2<1e-30) return ri;
+      const sr=(pv.re*dr+pv.im*di)/m2;
+      const si=(pv.im*dr-pv.re*di)/m2;
+      return {re:ri.re-sr, im:ri.im-si};
+    });
+  }
+  return roots;
+}
+
+/* ================================================================
+   FREQUENCY RESPONSE  &  STABILITY MARGINS
+   ================================================================ */
+function freqResp(num, den, K, freqs){
+  return freqs.map(w=>{
+    const nv = polyEval(num,0,w);
+    const dv = polyEval(den,0,w);
+    const m2 = dv.re**2+dv.im**2;
+    if(m2<1e-30) return {mag:200, phase:0};
+    const hr = K*(nv.re*dv.re+nv.im*dv.im)/m2;
+    const hi = K*(nv.im*dv.re-nv.re*dv.im)/m2;
+    const mag = Math.sqrt(hr**2+hi**2);
+    return {
+      mag:   20*Math.log10(Math.max(mag,1e-15)),
+      phase: Math.atan2(hi,hr)*180/Math.PI
+    };
+  });
+}
+
+function unwrap(ph){
+  const u=[ph[0]];
+  for(let i=1;i<ph.length;i++){
+    let d=ph[i]-ph[i-1];
+    while(d>180) d-=360;
+    while(d<-180) d+=360;
+    u.push(u[u.length-1]+d);
+  }
+  return u;
+}
+
+function margins(freqs, resp){
+  const mags = resp.map(r=>r.mag);
+  const phu  = unwrap(resp.map(r=>r.phase));
+  let PM=NaN,GM=NaN,wgc=NaN,wpc=NaN;
+
+  // Gain crossover: |L|=0 dB
+  for(let i=0;i<mags.length-1;i++){
+    if(mags[i]>=0 && mags[i+1]<0){
+      const t=-mags[i]/(mags[i+1]-mags[i]);
+      wgc = freqs[i]*(freqs[i+1]/freqs[i])**t;
+      PM  = 180 + phu[i] + t*(phu[i+1]-phu[i]);
+      break;
+    }
+  }
+  // Phase crossover: phase=−180°
+  for(let i=0;i<phu.length-1;i++){
+    if(phu[i]>=-180 && phu[i+1]<-180){
+      const t=(-180-phu[i])/(phu[i+1]-phu[i]);
+      wpc = freqs[i]*(freqs[i+1]/freqs[i])**t;
+      GM  = -(mags[i]+t*(mags[i+1]-mags[i]));
+      break;
+    }
+  }
+  return {PM,GM,wgc,wpc,mags,phu};
+}
+
+/* ================================================================
+   STEP RESPONSE — RK4 + Controllable Canonical Form
+   State: x[k] = w^(k)  where W(s)=U(s)/D_cl(s),  Y(s)=N_cl(s)W(s)
+
+   ẋ_k = x_{k+1}             (k = 0..n-2)
+   ẋ_{n-1} = u - Σ a_i·x_i  (a_i from monic denominator)
+   y = Σ b_k·x_k + D·u
+   ================================================================ */
+function stepResponse(clNum, clDen, tEnd){
+  const lead = clDen[0];
+  const aden = clDen.map(c=>c/lead);         // monic: [1, a_{n-1}, ..., a_0]
+  const bnum = clNum.map(c=>c/lead);
+  const n    = aden.length-1;
+  // Pad numerator to length n+1
+  const b    = [...Array(n+1-bnum.length).fill(0), ...bnum];
+  const D    = b[0];                          // feedthrough (0 for strictly proper)
+
+  const dt   = tEnd/2000;
+  let x      = new Array(n).fill(0);
+  const tArr=[], yArr=[];
+
+  function deriv(xi, u){
+    const dx = [...xi.slice(1), 0];
+    let last = u;
+    for(let k=0;k<n;k++) last -= aden[n-k]*xi[k];
+    dx[n-1] = last;
+    return dx;
+  }
+  function out(xi, u){
+    let y = D*u;
+    for(let k=0;k<n;k++) y += b[n-k]*xi[k];
+    return y;
+  }
+
+  for(let s=0; s<=2000; s++){
+    tArr.push(s*dt);
+    yArr.push(out(x,1));
+    const k1=deriv(x,1);
+    const x2=x.map((v,i)=>v+0.5*dt*k1[i]);
+    const k2=deriv(x2,1);
+    const x3=x.map((v,i)=>v+0.5*dt*k2[i]);
+    const k3=deriv(x3,1);
+    const x4=x.map((v,i)=>v+dt*k3[i]);
+    const k4=deriv(x4,1);
+    x=x.map((v,i)=>v+dt/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));
+  }
+  return {t:tArr, y:yArr};
+}
+
+function stepMetrics(t,y){
+  const yf   = y[y.length-1];
+  if(Math.abs(yf)<1e-10) return {OS:NaN,Ts:NaN,Tr:NaN,yf:0};
+  const ymax = Math.max(...y);
+  const OS   = Math.max(0,(ymax-yf)/Math.abs(yf)*100);
+
+  // Settling time (stay within 2% band)
+  let Ts=NaN;
+  const band=0.02*Math.abs(yf);
+  for(let i=y.length-1;i>=0;i--){
+    if(Math.abs(y[i]-yf)>band){ Ts=t[Math.min(i+1,t.length-1)]; break; }
+  }
+  // Rise time 10% → 90%
+  let t10=NaN,t90=NaN;
+  for(let i=0;i<y.length-1;i++){
+    if(isNaN(t10)&&y[i]<=0.1*yf&&y[i+1]>=0.1*yf) t10=t[i];
+    if(isNaN(t90)&&y[i]<=0.9*yf&&y[i+1]>=0.9*yf) t90=t[i];
+  }
+  const Tr=(!isNaN(t10)&&!isNaN(t90))?t90-t10:NaN;
+  return {OS,Ts,Tr,yf};
+}
+
+/* ================================================================
+   ROOT LOCUS
+   ================================================================ */
+function rootLocus(num, den){
+  const nP   = den.length-1;
+  const Ks   = [0, ...logspace(-2,3.5,180)];
+  const brs  = Array.from({length:nP},()=>({re:[],im:[]}));
+  let prevR  = null;
+
+  for(const K of Ks){
+    const cp = polyAdd(den, polyScale(num,K));
+    let rs   = polyRoots(cp);
+
+    // Match branches (greedy nearest-neighbor)
+    if(prevR && prevR.length===rs.length){
+      const used=new Array(rs.length).fill(false);
+      const m=new Array(nP);
+      for(let i=0;i<nP;i++){
+        let best=-1, bestD=Infinity;
+        for(let j=0;j<rs.length;j++){
+          if(!used[j]){
+            const d=Math.hypot(rs[j].re-prevR[i].re, rs[j].im-prevR[i].im);
+            if(d<bestD){bestD=d;best=j;}
+          }
+        }
+        if(best>=0){m[i]=rs[best];used[best]=true;}
+      }
+      rs=m;
+    }
+    rs.forEach((r,i)=>{ if(r&&i<nP){brs[i].re.push(r.re);brs[i].im.push(r.im);} });
+    prevR=rs;
+  }
+  return brs;
+}
+
+/* ================================================================
+   PLOTLY SHARED STYLE
+   ================================================================ */
+const DARK = {
+  paper_bgcolor:'#161c28', plot_bgcolor:'#0a0e14',
+  font:{color:'#d8e4f0',size:15,family:'DM Sans,sans-serif'},
+  margin:{t:34,r:14,b:40,l:52},
+  xaxis:{gridcolor:'#1a2230',zerolinecolor:'#2a3a50',tickfont:{size:13}},
+  yaxis:{gridcolor:'#1a2230',zerolinecolor:'#2a3a50',tickfont:{size:13}},
+};
+const CFG = {displaylogo:false, modeBarButtonsToRemove:['lasso2d','select2d'], responsive:true};
+const BCLR = ['#4d9fff','#ff4d6d','#00c060','#f5a623','#a78bfa','#06b6d4'];
+
+/* ================================================================
+   PLOT: ROOT LOCUS
+   ================================================================ */
+function plotRL(num,den,K){
+  const brs    = rootLocus(num,den);
+  const olP    = polyRoots(den);
+  const olZ    = num.length>1 ? polyRoots(num) : [];
+  const clP    = polyRoots(polyAdd(den,polyScale(num,K)));
+  const traces = [];
+
+  // Locus branches
+  brs.forEach((br,i)=>{
+    traces.push({
+      x:br.re, y:br.im, mode:'lines',
+      line:{color:BCLR[i%BCLR.length],width:1.8},
+      showlegend:false, hovertemplate:`Branch ${i+1}<br>σ=%{x:.3f}  jω=%{y:.3f}<extra></extra>`
+    });
+  });
+
+  // OL poles ×
+  traces.push({
+    x:olP.map(p=>p.re), y:olP.map(p=>p.im), mode:'markers',
+    name:'× OL Poles',
+    marker:{symbol:'x',size:12,color:'#ff4d6d',line:{width:3}},
+    hovertemplate:'OL Pole: %{x:.3f}%{y:+.3f}j<extra></extra>'
+  });
+
+  // OL zeros ○
+  if(olZ.length) traces.push({
+    x:olZ.map(z=>z.re), y:olZ.map(z=>z.im), mode:'markers',
+    name:'○ OL Zeros',
+    marker:{symbol:'circle-open',size:12,color:'#00c060',line:{width:3}},
+    hovertemplate:'OL Zero: %{x:.3f}%{y:+.3f}j<extra></extra>'
+  });
+
+  // CL poles for current K ★
+  traces.push({
+    x:clP.map(p=>p.re), y:clP.map(p=>p.im), mode:'markers',
+    name:`★ CL (K=${K.toPrecision(3)})`,
+    marker:{symbol:'star',size:15,color:'#f5a623'},
+    hovertemplate:'CL Pole: %{x:.4f}%{y:+.4f}j<extra></extra>'
+  });
+
+  Plotly.react('plot-rl', traces, {
+    ...DARK,
+    title:{text:'📍  Root Locus', font:{size:17,color:'#d8e4f0'}},
+    xaxis:{...DARK.xaxis, title:{text:'Real  σ',font:{size:15}}, zeroline:true},
+    yaxis:{...DARK.yaxis, title:{text:'Imaginary  jω',font:{size:15}}, zeroline:true, scaleanchor:'x'},
+    legend:{x:0.01,y:0.99,bgcolor:'#0a0e1488',font:{size:12},bordercolor:'#1f2a3a',borderwidth:1}
+  }, CFG);
+}
+
+/* ================================================================
+   PLOT: BODE
+   ================================================================ */
+function plotBode(num,den,K){
+  const freqs = logspace(-2,3,500);
+  const resp  = freqResp(num,den,K,freqs);
+  const {PM,GM,wgc,wpc,mags,phu} = margins(freqs,resp);
+
+  // ─ Magnitude ─
+  const magTr = [
+    {x:freqs, y:mags, mode:'lines', line:{color:'#4d9fff',width:2},
+     hovertemplate:'ω=%{x:.3f} rad/s<br>|L|=%{y:.2f} dB<extra></extra>'},
+    {x:[freqs[0],freqs.at(-1)], y:[0,0], mode:'lines',
+     line:{color:'#ffffff18',width:1,dash:'dot'}, showlegend:false},
+  ];
+  if(!isNaN(wgc)){
+    magTr.push({
+      x:[wgc],y:[0],mode:'markers+text', showlegend:false,
+      marker:{symbol:'circle',size:10,color:'#4d9fff',line:{color:'#fff',width:1}},
+      text:[`ω_gc=${wgc.toFixed(2)}`], textposition:'top right',
+      textfont:{color:'#4d9fff',size:15},
+      hovertemplate:`ω_gc=${wgc.toFixed(3)} rad/s<extra></extra>`
+    });
+  }
+  if(!isNaN(wpc)&&!isNaN(GM)){
+    magTr.push({
+      x:[wpc],y:[-GM],mode:'markers+text', showlegend:false,
+      marker:{symbol:'triangle-up',size:12,color:'#f5a623'},
+      text:[`GM=${GM.toFixed(1)} dB`], textposition:'top right',
+      textfont:{color:'#f5a623',size:15},
+      hovertemplate:`GM=${GM.toFixed(2)} dB @ ω=${wpc.toFixed(3)}<extra></extra>`
+    });
+    // Vertical line at wpc
+    magTr.push({
+      x:[wpc,wpc],y:[Math.min(...mags)-5,-GM], mode:'lines', showlegend:false,
+      line:{color:'#f5a623',width:1.5,dash:'dash'}
+    });
+  }
+
+  Plotly.react('plot-bm', magTr, {
+    ...DARK,
+    title:{text:'📊  Bode — Magnitude', font:{size:17,color:'#d8e4f0'}},
+    xaxis:{...DARK.xaxis, title:{text:'ω  (rad/s)',font:{size:15}}, type:'log'},
+    yaxis:{...DARK.yaxis, title:{text:'Magnitude  (dB)',font:{size:15}}},
+  }, CFG);
+
+  // ─ Phase ─
+  const phTr = [
+    {x:freqs, y:phu, mode:'lines', line:{color:'#ff4d6d',width:2},
+     hovertemplate:'ω=%{x:.3f} rad/s<br>∠L=%{y:.1f}°<extra></extra>'},
+    {x:[freqs[0],freqs.at(-1)], y:[-180,-180], mode:'lines',
+     line:{color:'#ffffff18',width:1,dash:'dot'}, showlegend:false},
+  ];
+  if(!isNaN(wgc)&&!isNaN(PM)){
+    const idx = freqs.findIndex(f=>f>=wgc);
+    let phG = phu.at(-1);
+    if(idx>0){
+      const tt=(wgc-freqs[idx-1])/(freqs[idx]-freqs[idx-1]);
+      phG=phu[idx-1]+tt*(phu[idx]-phu[idx-1]);
+    }
+    phTr.push({
+      x:[wgc],y:[phG],mode:'markers+text', showlegend:false,
+      marker:{symbol:'triangle-up',size:12,color:'#00c060'},
+      text:[`PM=${PM.toFixed(1)}°`], textposition:'top right',
+      textfont:{color:'#00c060',size:15},
+      hovertemplate:`PM=${PM.toFixed(2)}° @ ω=${wgc.toFixed(3)}<extra></extra>`
+    });
+    // Vertical line at wgc
+    phTr.push({
+      x:[wgc,wgc],y:[Math.min(...phu)-10,phG], mode:'lines', showlegend:false,
+      line:{color:'#00c060',width:1.5,dash:'dash'}
+    });
+    // PM arc annotation: horizontal span from phase to -180
+    phTr.push({
+      x:[wgc,wgc],y:[phG,-180], mode:'lines', showlegend:false,
+      line:{color:'#00c06088',width:2}
+    });
+  }
+
+  Plotly.react('plot-bp', phTr, {
+    ...DARK,
+    title:{text:'📊  Bode — Phase', font:{size:17,color:'#d8e4f0'}},
+    xaxis:{...DARK.xaxis, title:{text:'ω  (rad/s)',font:{size:15}}, type:'log'},
+    yaxis:{...DARK.yaxis, title:{text:'Phase  (deg)',font:{size:15}}},
+  }, CFG);
+
+  // Update metrics
+  set('m-pm', isNaN(PM)?'—':PM.toFixed(1)+'°');
+  set('m-gm', isNaN(GM)?'∞':GM.toFixed(1)+' dB');
+  set('m-wgc',isNaN(wgc)?'—':wgc.toFixed(3));
+  set('m-wpc',isNaN(wpc)?'∞':wpc.toFixed(3));
+}
+
+/* ================================================================
+   PLOT: STEP RESPONSE
+   ================================================================ */
+function plotStep(clNum, clDen){
+  const clP    = polyRoots(clDen);
+  const stable = clP.every(p=>p.re<1e-3);
+  const sigmas = clP.filter(p=>p.re<0).map(p=>-p.re);
+  const minS   = sigmas.length ? Math.min(...sigmas) : 1;
+  const tEnd   = stable ? Math.min(Math.max(20/minS,3),120) : 15;
+
+  const {t,y}  = stepResponse(clNum, clDen, tEnd);
+  const {OS,Ts,Tr,yf} = stepMetrics(t,y);
+
+  const traces = [{
+    x:t, y, mode:'lines', line:{color:'#4d9fff',width:2.5},
+    hovertemplate:'t=%{x:.3f} s<br>y=%{y:.4f}<extra></extra>'
+  }];
+
+  if(stable && Math.abs(yf)>1e-10){
+    traces.push(
+      {x:[0,tEnd],y:[yf,yf],  mode:'lines',line:{color:'#00c06055',width:1.5,dash:'dot'},showlegend:false},
+      {x:[0,tEnd],y:[yf*1.02,yf*1.02],mode:'lines',line:{color:'#00c06030',width:1,dash:'dash'},showlegend:false},
+      {x:[0,tEnd],y:[yf*0.98,yf*0.98],mode:'lines',line:{color:'#00c06030',width:1,dash:'dash'},showlegend:false},
+    );
+  }
+
+  const annots=[];
+  if(!isNaN(OS)&&OS>0.5){
+    const iM=y.indexOf(Math.max(...y));
+    annots.push({
+      x:t[iM], y:y[iM],
+      text:`OS = ${OS.toFixed(1)}%`, showarrow:true, arrowhead:2,
+      font:{color:'#f5a623',size:15}, arrowcolor:'#f5a623', ax:45, ay:-35
+    });
+  }
+  if(!isNaN(Ts)){
+    annots.push({
+      x:Ts, y:yf,
+      text:`Ts = ${Ts.toFixed(2)} s`, showarrow:true, arrowhead:2,
+      font:{color:'#00c060',size:15}, arrowcolor:'#00c060', ax:-50, ay:35
+    });
+  }
+
+  Plotly.react('plot-step', traces, {
+    ...DARK,
+    title:{text:'⏱  Step Response  (Closed-Loop)', font:{size:17,color:'#d8e4f0'}},
+    xaxis:{...DARK.xaxis, title:{text:'Time  (s)',font:{size:15}}},
+    yaxis:{...DARK.yaxis, title:{text:'Amplitude',font:{size:15}}},
+    annotations: annots
+  }, CFG);
+
+  set('m-os', isNaN(OS)?'—':OS.toFixed(1)+'%');
+  set('m-ts', isNaN(Ts)?'—':Ts.toFixed(2)+'s');
+  set('m-tr', isNaN(Tr)?'—':Tr.toFixed(2)+'s');
+  set('m-ss', stable?(isNaN(yf)?'—':yf.toFixed(4)):'∞ (unstable)');
+}
+
+/* ================================================================
+   MAIN UPDATE
+   ================================================================ */
+const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+
+function updateAll(){
+  const num = parseCoeffs(document.getElementById('num').value);
+  const den = parseCoeffs(document.getElementById('den').value);
+  const K   = parseFloat(document.getElementById('knum').value);
+
+  if(!num||!den){ alert('Please enter valid coefficients.'); return; }
+  if(!isFinite(K)||K<=0){ alert('K must be a positive number.'); return; }
+
+  // TF display
+  document.getElementById('tf-num-disp').textContent = formatPoly(num);
+  document.getElementById('tf-den-disp').textContent = formatPoly(den);
+
+  // Closed-loop TF
+  const clNum = polyScale(num,K);
+  const clDen = polyAdd(den, polyScale(num,K));
+
+  // Stability
+  const clP  = polyRoots(clDen);
+  const stab = clP.every(p=>p.re<1e-3);
+  const marg = !stab && clP.every(p=>p.re<0.1);
+
+  const sb = document.getElementById('stab');
+  if(stab){       sb.className='stab-badge stab-stable';   sb.textContent='✓  Closed-Loop Stable'; }
+  else if(marg){  sb.className='stab-badge stab-marginal'; sb.textContent='⚠  Marginally Stable / Unstable'; }
+  else{           sb.className='stab-badge stab-unstable'; sb.textContent='✗  Closed-Loop Unstable'; }
+
+  // CL poles list
+  document.getElementById('cl-poles').innerHTML = clP.map(p=>{
+    const cls  = p.re<0 ? 'pole-stable' : 'pole-unstable';
+    const sign = p.im>=0 ? '+' : '';
+    return `<div class="${cls}">${p.re.toFixed(4)} ${sign}${p.im.toFixed(4)}j</div>`;
+  }).join('');
+
+  // Render all four plots
+  plotRL(num,den,K);
+  plotBode(num,den,K);
+  plotStep(clNum,clDen);
+}
+
+/* ================================================================
+   K SLIDER  (logarithmic mapping)
+   ================================================================ */
+const slider = document.getElementById('kslider');
+const knum   = document.getElementById('knum');
+
+slider.addEventListener('input',()=>{
+  const K=10**parseFloat(slider.value);
+  knum.value=parseFloat(K.toPrecision(4));
+  updateAll();
+});
+knum.addEventListener('change',()=>{
+  const K=parseFloat(knum.value);
+  if(K>0) slider.value=Math.log10(K);
+  updateAll();
+});
+['num','den'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') updateAll(); });
+});
+
+/* ================================================================
+   PRESETS
+   ================================================================ */
+const PRESETS = {
+  first:    {num:'1', den:'1, 1',          K:2},
+  second_u: {num:'1', den:'1, 1, 1',       K:1},
+  second_o: {num:'1', den:'1, 3, 2',       K:4},
+  type1:    {num:'1', den:'1, 2, 0',       K:2},
+  third:    {num:'1', den:'1, 6, 11, 6',   K:5},
+  unstable: {num:'1', den:'1, -1, 1',      K:5},
+};
+
+function loadPreset(key){
+  if(!key||!PRESETS[key]) return;
+  const p=PRESETS[key];
+  document.getElementById('num').value=p.num;
+  document.getElementById('den').value=p.den;
+  knum.value=p.K;
+  slider.value=Math.log10(p.K);
+  updateAll();
+}
+
+// ── Boot ──
+loadPreset('type1');
+</script>
+</body>
+</html>
